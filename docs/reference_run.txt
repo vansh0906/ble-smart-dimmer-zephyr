@@ -1,0 +1,55 @@
+BLE smart dimmer firmware on Zephyr RTOS: simulated nRF52 (BabbleSim), tested over the air
+Zephyr 4.2.0, board nrf52_bsim (nRF52833 models + Zephyr BLE controller), 2.4 GHz phy: BabbleSim
+
+[1  Host unit tests: dimmer core and energy meter]
+   21/21 unit tests pass
+
+[2  Firmware builds for nrf52_bsim, warnings as errors]
+   dimmer_product  ok, 0 warnings
+   dimmer_test     ok, 0 warnings
+   central         ok, 0 warnings
+
+[3  Over-the-air scenarios: dimmer + test phone on a simulated 2.4 GHz channel]
+   basic     pass  (0, 0)
+   fade      pass  (0, 0)
+   faults    pass  (0, 0)
+   brownout  pass  (0, 0)
+   linkloss  pass  (0, 0, 0)
+   persist1  pass  (0, 0)
+   persist2  pass  (0, 0)
+   stress    pass  (0, 0)
+
+[4  Results]
+   discovery: 6 of 6 characteristics; unencrypted write -> ATT 0x05, after Just Works pairing: security level 2
+   bad writes: level 101 -> 0x13, 2-byte level -> 0x0d, fade 10001 -> 0x13, command 9 -> 0x13; state unchanged: True
+   energy meter, read over BLE, vs the load model's true power:
+     100 %: 457.0 W measured, 456.0 W true, 120.0 V, 4008 mA, PF 0.95
+      75 %: 220.6 W measured, 220.2 W true, 120.0 V, 1935 mA, PF 0.95
+      50 %: 84.1 W measured, 83.9 W true, 120.0 V, 738 mA, PF 0.95
+      25 %: 19.9 W measured, 20.1 W true, 120.0 V, 175 mA, PF 0.95
+   fade 0->100 % asked 1000 ms: 1005 ms (22 status notifications); 100->20 % asked 3000 ms: 3007 ms; monotonic: True
+   overload (+3 A): tripped 210 ms after it started; turned on again while still overloaded: tripped again: True; commands in fault -> ATT 0x80
+   short circuit: tripped 8 ms after it started (next 10 ms tick)
+   heatsink 90 C: derated to 80 W; 101 C: tripped 3 ms later; reset while hot -> ATT 0x81, once cool -> 0x00
+   mains off for 200 ms: output off 25 ms after, back 205 ms after the cut at the same level: True
+   link loss: phone vanished; dimmer saw reason 0x08 (supervision timeout) at 1790 ms, output unchanged: True (duty 407), second phone connected at 3038 ms and read the same level
+   power cycle: second boot read lvl=35 on=1 fade=800 ms from flash; phone saw the same: True
+   stress: 300 random commands over BLE, 0 state mismatches, 0 ATT errors, 109.0 ms per command + status read (simulated time)
+
+17 simulated devices in 8 simulations, 17 s
+
+ID   Requirement                                       Result                      Target                Status
+R1   Firmware builds warning-free (3 images)           3/3, 0 warnings             3/3, 0                PASS
+R2   Host unit tests (dimmer core, meter)              21/21                       all                   PASS
+R3   BLE: connect and discover all 6 characteristics   6/6                         6/6                   PASS
+R4   Writes need encryption; accepted after pairing    0x05 then level 2           rejected, then ok     PASS
+R5   Bad writes rejected with ATT errors, no change    4/4                         4/4                   PASS
+R6   Fades take the time asked (+/-2 %), monotonic     1005 / 3007 ms              1000 / 3000 +/-2 %    PASS
+R7   Metering: power within 2 % at 4 levels            worst 0.9 %                 <= 2 %                PASS
+R8   Short <= 10 ms, overload 200-220 ms, re-trips     8 / 210 ms                  <= 10 / 200-220 ms    PASS
+R9   Overtemp: derate, trip at 100 C, reset when cool  80 W, 3 ms                  derate, trip, 0x81    PASS
+R10  Mains loss: off <= 30 ms, resumes same level      25 ms, same level           <= 30 ms, same        PASS
+R11  Link loss: output unchanged, phone reconnects     reason 0x08, same level     0x08, same            PASS
+R12  Power cycle: on, level, fade restored from flash  35 %, 800 ms                35 %, 800 ms          PASS
+R13  300 random commands: no mismatch, no error        0 / 0                       0 / 0                 PASS
+13/13 requirements pass

@@ -1,0 +1,30 @@
+# west manifest: this repo + Zephyr v4.2.0 + only the modules the nrf52_bsim BLE build needs.
+#   mkdir ws && cd ws && git clone <this repo> ble-smart-dimmer-zephyr
+#   west init -l ble-smart-dimmer-zephyr && west update --narrow -o=--depth=1
+manifest:
+  self:
+    path: ble-smart-dimmer-zephyr
+  group-filter: [+babblesim]
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.2.0
+      import:
+        name-allowlist:
+          - hal_nordic
+          - cmsis_6
+          - nrf_hw_models
+          - mbedtls
+          - bsim
+          - babblesim_base
+          - babblesim_ext_2G4_libPhyComv1
+          - babblesim_ext_2G4_phy_v1
+          - babblesim_ext_2G4_channel_NtNcable
+          - babblesim_ext_2G4_channel_multiatt
+          - babblesim_ext_2G4_modem_magic
+          - babblesim_ext_2G4_modem_BLE_simple
+          - babblesim_ext_2G4_device_playback
+          - babblesim_ext_libCryptov1

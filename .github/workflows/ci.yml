@@ -1,0 +1,74 @@
+name: ci
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host unit tests (dimmer core, meter)
+        run: make -C tests/unit && ./tests/unit/build/unit_tests
+
+  ble-sim:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ws/ble-smart-dimmer-zephyr
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build gcc-multilib g++-multilib device-tree-compiler
+      - name: Cache Zephyr workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            ws/.west
+            ws/zephyr
+            ws/modules
+            ws/tools
+          key: zephyr-v4.2.0-bsim-${{ hashFiles('ws/ble-smart-dimmer-zephyr/west.yml') }}
+      - name: west init + update (Zephyr v4.2.0, Nordic HAL, nRF HW models, BabbleSim)
+        working-directory: ws
+        run: |
+          pip install -q west
+          [ -d .west ] || west init -l ble-smart-dimmer-zephyr
+          west update --narrow -o=--depth=1
+          pip install -q -r zephyr/scripts/requirements-base.txt matplotlib
+      - name: Build BabbleSim
+        working-directory: ws/tools/bsim
+        run: |
+          [ -e Makefile ] || ln -s components/common/Makefile Makefile
+          make everything -j"$(nproc)" > /dev/null
+      - name: Build firmware + run the over-the-air scenarios + check requirements
+        working-directory: ws/ble-smart-dimmer-zephyr
+        env:
+          ZEPHYR_BASE: ${{ github.workspace }}/ws/zephyr
+          BSIM_OUT_PATH: ${{ github.workspace }}/ws/tools/bsim
+          BSIM_COMPONENTS_PATH: ${{ github.workspace }}/ws/tools/bsim/components
+          ZEPHYR_TOOLCHAIN_VARIANT: host
+        run: |
+          set -o pipefail
+          python3 tools/run.py | tee results.txt
+      - name: Plots
+        if: always()
+        working-directory: ws/ble-smart-dimmer-zephyr
+        run: python3 tools/plot.py || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results
+          path: |
+            ws/ble-smart-dimmer-zephyr/results.txt
+            ws/ble-smart-dimmer-zephyr/out/*.png
+            ws/ble-smart-dimmer-zephyr/out/*.log

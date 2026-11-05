@@ -1,0 +1,7 @@
+config APP_TEST_HOOKS
+	bool "Fault-injection GATT characteristic (test builds only)"
+	help
+	  Adds a characteristic the test central uses to inject overcurrent, a short, overtemperature
+	  and mains loss into the simulated power stage, and to read the model's true power.
+
+source "Kconfig.zephyr"
