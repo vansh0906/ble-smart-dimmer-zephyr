@@ -79,6 +79,13 @@ def ival(v):
 
 
 def main():
+    import platform
+    if platform.system() != "Linux" or platform.machine() not in ("x86_64", "AMD64"):
+        sys.exit(f"run.py needs x86-64 Linux (BabbleSim and nrf52_bsim are 32-bit x86 Linux programs); this is "
+                 f"{platform.system()} {platform.machine()}.\nOn a Mac: make -C tests/unit && ./tests/unit/build/unit_tests"
+                 "\nThe full run is the ble-sim job in GitHub Actions.")
+    if not (ZEPHYR_BASE / "VERSION").exists() or not (BSIM_OUT / "bin" / "bs_2G4_phy_v1").exists():
+        sys.exit(f"Zephyr or BabbleSim not found ({ZEPHYR_BASE}, {BSIM_OUT}); run tools/setup_linux.sh first.")
     t_start = time.time()
     sys.stdout.reconfigure(line_buffering=True)
     OUT.mkdir(exist_ok=True)

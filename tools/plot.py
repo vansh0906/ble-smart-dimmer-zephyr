@@ -10,6 +10,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "out"
+if not (OUT / "plot.json").exists():
+    sys.exit("out/plot.json not found: run tools/run.py first (on Linux or in CI).")
 d = json.loads((OUT / "plot.json").read_text())
 
 

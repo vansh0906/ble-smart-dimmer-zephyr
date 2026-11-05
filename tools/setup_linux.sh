@@ -3,6 +3,12 @@
 # BabbleSim and the nrf52_bsim board are 32-bit x86 Linux programs, so they do not run on macOS.
 # Run from the repo:  bash tools/setup_linux.sh   then:  python3 tools/run.py | tee results.txt
 set -euo pipefail
+if [ "$(uname -s)" != "Linux" ] || [ "$(uname -m)" != "x86_64" ]; then
+  echo "This script is for x86-64 Linux (a Codespace, Ubuntu or WSL2); this machine is $(uname -s) $(uname -m)."
+  echo "On a Mac run the unit tests:  make -C tests/unit && ./tests/unit/build/unit_tests"
+  echo "The full BLE simulation runs in GitHub Actions on every push (Actions tab -> ci -> ble-sim)."
+  exit 1
+fi
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 WS=$(dirname "$REPO")
 NAME=$(basename "$REPO")
