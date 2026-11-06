@@ -56,8 +56,12 @@ ax[2].set_xlabel("simulated time s")
 names = {1: "short", 2: "overload", 4: "overtemp"}
 for a in ax:
     a.grid(alpha=0.3)
-ax[0].set_title("fault scenario driven over BLE (dimmer log, 100 ms)\ntrips: "
-                + ", ".join(f"{names.get(k, k)} {ms} ms" for k, ms in d["trips"]), fontsize=9)
+labels, seen = [], set()
+for k, ms in d["trips"]:                                  # trip time = ms after the fault was injected
+    labels.append(f"{names.get(k, k)} re-trip on turn-on" if k in seen else f"{names.get(k, k)} {ms} ms")
+    seen.add(k)
+ax[0].set_title("fault scenario driven over BLE (dimmer log, 100 ms)\ntrips after the fault starts: "
+                + ", ".join(labels), fontsize=9)
 fig.tight_layout()
 fig.savefig(OUT / "faults.png", dpi=130)
 print("wrote out/fade.png, out/faults.png")
